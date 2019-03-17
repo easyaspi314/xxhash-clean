@@ -50,3 +50,8 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+xxhash32-ref
+xxhash64-ref
+xxhash32-ref-cxx
+xxhash64-ref-cxx
