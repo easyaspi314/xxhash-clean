@@ -60,26 +60,26 @@ static uint64_t XXH_rotl64(uint64_t const value, uint32_t const amount)
     return (value << amount) | (value >> (64 - amount));
 }
 
-/* Portably reads a 32-bit little endian integer from p at the given offset. */
-static uint32_t XXH_read32(uint8_t const *const p, size_t const offset)
+/* Portably reads a 32-bit little endian integer from data at the given offset. */
+static uint32_t XXH_read32(uint8_t const *const data, size_t const offset)
 {
-    return (uint32_t)p[offset + 0]
-        | ((uint32_t)p[offset + 1] <<  8)
-        | ((uint32_t)p[offset + 2] << 16)
-        | ((uint32_t)p[offset + 3] << 24);
+    return (uint32_t) data[offset + 0]
+        | ((uint32_t) data[offset + 1] <<  8)
+        | ((uint32_t) data[offset + 2] << 16)
+        | ((uint32_t) data[offset + 3] << 24);
 }
 
-/* Portably reads a 64-bit little endian integer from p at the given offset. */
-static uint64_t XXH_read64(uint8_t const *const p, size_t const offset)
+/* Portably reads a 64-bit little endian integer from data at the given offset. */
+static uint64_t XXH_read64(uint8_t const *const data, size_t const offset)
 {
-    return (uint64_t)p[offset + 0]
-        | ((uint64_t)p[offset + 1] <<  8)
-        | ((uint64_t)p[offset + 2] << 16)
-        | ((uint64_t)p[offset + 3] << 24)
-        | ((uint64_t)p[offset + 4] << 32)
-        | ((uint64_t)p[offset + 5] << 40)
-        | ((uint64_t)p[offset + 6] << 48)
-        | ((uint64_t)p[offset + 7] << 56);
+    return (uint64_t) data[offset + 0]
+        | ((uint64_t) data[offset + 1] <<  8)
+        | ((uint64_t) data[offset + 2] << 16)
+        | ((uint64_t) data[offset + 3] << 24)
+        | ((uint64_t) data[offset + 4] << 32)
+        | ((uint64_t) data[offset + 5] << 40)
+        | ((uint64_t) data[offset + 6] << 48)
+        | ((uint64_t) data[offset + 7] << 56);
 }
 
 /* Mixes input into lane, this is mostly used in the first loop. */
@@ -94,8 +94,7 @@ static uint64_t XXH64_round(uint64_t lane, uint64_t const input)
 /* Merges lane into hash to finalize */
 static uint64_t XXH64_mergeRound(uint64_t hash, uint64_t const lane)
 {
-    uint64_t const merged  = XXH64_round(0, lane);
-    hash ^= merged;
+    hash ^= XXH64_round(0, lane);
     hash *= PRIME64_1;
     hash += PRIME64_4;
     return hash;
@@ -120,7 +119,7 @@ static uint64_t XXH64_avalanche(uint64_t hash)
  * returns: The 64-bit calculated hash value. */
 uint64_t XXH64(void const *const input, size_t const length, uint64_t const seed)
 {
-    uint8_t const *const p = (uint8_t const *) input;
+    uint8_t const *const data = (uint8_t const *) input;
     uint64_t hash = 0;
     size_t remaining = length;
     size_t offset = 0;
@@ -139,10 +138,10 @@ uint64_t XXH64(void const *const input, size_t const length, uint64_t const seed
         uint64_t lane4 = seed - PRIME64_1;
 
         while (remaining >= 32) {
-            lane1 = XXH64_round(lane1, XXH_read64(p, offset)); offset += 8;
-            lane2 = XXH64_round(lane2, XXH_read64(p, offset)); offset += 8;
-            lane3 = XXH64_round(lane3, XXH_read64(p, offset)); offset += 8;
-            lane4 = XXH64_round(lane4, XXH_read64(p, offset)); offset += 8;
+            lane1 = XXH64_round(lane1, XXH_read64(data, offset)); offset += 8;
+            lane2 = XXH64_round(lane2, XXH_read64(data, offset)); offset += 8;
+            lane3 = XXH64_round(lane3, XXH_read64(data, offset)); offset += 8;
+            lane4 = XXH64_round(lane4, XXH_read64(data, offset)); offset += 8;
             remaining -= 32;
         }
 
@@ -161,26 +160,29 @@ uint64_t XXH64(void const *const input, size_t const length, uint64_t const seed
 
     /* Process the remaining data. */
     while (remaining >= 8) {
-        uint64_t const k1 = XXH64_round(0, XXH_read64(p, offset));
+        hash ^= XXH64_round(0, XXH_read64(data, offset));
+        hash  = XXH_rotl64(hash, 27);
+        hash *= PRIME64_1;
+        hash += PRIME64_4;
         offset += 8;
-        hash ^= k1;
-        hash  = (XXH_rotl64(hash, 27) * PRIME64_1) + PRIME64_4;
         remaining -= 8;
     }
 
     if (remaining >= 4) {
-        hash ^= (uint64_t) (XXH_read32(p, offset)) * PRIME64_1;
+        hash ^= (uint64_t) XXH_read32(data, offset) * PRIME64_1;
+        hash  = XXH_rotl64(hash, 23);
+        hash *= PRIME64_2;
+        hash += PRIME64_3;
         offset += 4;
-        hash = (XXH_rotl64(hash, 23) * PRIME64_2) + PRIME64_3;
         remaining -= 4;
     }
 
     while (remaining != 0) {
-        hash ^= p[offset] * PRIME64_5;
+        hash ^= (uint64_t) data[offset] * PRIME64_5;
         hash  = XXH_rotl64(hash, 11);
         hash *= PRIME64_1;
-        --remaining;
         ++offset;
+        --remaining;
     }
 
     return XXH64_avalanche(hash);
@@ -213,8 +215,10 @@ int main(void)
     uint8_t test_data[TEST_DATA_SIZE];
     uint32_t byte_gen = prime;
     size_t i = 0;
+
+    /* Fill in the test_data buffer with "random" data. */
     for (; i < TEST_DATA_SIZE; ++i) {
-        test_data[i] = (uint8_t)(byte_gen >> 24);
+        test_data[i] = (uint8_t) (byte_gen >> 24);
         byte_gen *= byte_gen;
     }
 
@@ -233,4 +237,3 @@ int main(void)
 }
 
 #endif /* XXH_SELFTEST */
-

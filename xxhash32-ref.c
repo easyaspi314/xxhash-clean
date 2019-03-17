@@ -59,13 +59,13 @@ static uint32_t XXH_rotl32(uint32_t value, uint32_t amount)
     return (value << amount) | (value >> (32 - amount));
 }
 
-/* Portably reads a 32-bit little endian integer from p at the given offset. */
-static uint32_t XXH_read32(uint8_t const *const p, size_t const offset)
+/* Portably reads a 32-bit little endian integer from data at the given offset. */
+static uint32_t XXH_read32(uint8_t const *const data, size_t const offset)
 {
-    return (uint32_t)p[offset + 0]
-        | ((uint32_t)p[offset + 1] << 8)
-        | ((uint32_t)p[offset + 2] << 16)
-        | ((uint32_t)p[offset + 3] << 24);
+    return (uint32_t) data[offset + 0]
+        | ((uint32_t) data[offset + 1] << 8)
+        | ((uint32_t) data[offset + 2] << 16)
+        | ((uint32_t) data[offset + 3] << 24);
 }
 
 /* Mixes input into lane. */
@@ -96,7 +96,7 @@ static uint32_t XXH32_avalanche(uint32_t hash)
  * returns: The 32-bit calculated hash value. */
 uint32_t XXH32(void const *const input, size_t const length, uint32_t const seed)
 {
-    uint8_t const *const p = (uint8_t const *) input;
+    uint8_t const *const data = (uint8_t const *) input;
     uint32_t hash;
     size_t remaining = length;
     size_t offset = 0;
@@ -115,10 +115,10 @@ uint32_t XXH32(void const *const input, size_t const length, uint32_t const seed
         uint32_t lane4 = seed - PRIME32_1;
 
         while (remaining >= 16) {
-            lane1 = XXH32_round(lane1, XXH_read32(p, offset)); offset += 4;
-            lane2 = XXH32_round(lane2, XXH_read32(p, offset)); offset += 4;
-            lane3 = XXH32_round(lane3, XXH_read32(p, offset)); offset += 4;
-            lane4 = XXH32_round(lane4, XXH_read32(p, offset)); offset += 4;
+            lane1 = XXH32_round(lane1, XXH_read32(data, offset)); offset += 4;
+            lane2 = XXH32_round(lane2, XXH_read32(data, offset)); offset += 4;
+            lane3 = XXH32_round(lane3, XXH_read32(data, offset)); offset += 4;
+            lane4 = XXH32_round(lane4, XXH_read32(data, offset)); offset += 4;
             remaining -= 16;
         }
 
@@ -132,7 +132,7 @@ uint32_t XXH32(void const *const input, size_t const length, uint32_t const seed
 
     /* Process the remaining data. */
     while (remaining >= 4) {
-        hash += XXH_read32(p, offset) * PRIME32_3;
+        hash += XXH_read32(data, offset) * PRIME32_3;
         hash  = XXH_rotl32(hash, 17);
         hash *= PRIME32_4;
         offset += 4;
@@ -140,7 +140,7 @@ uint32_t XXH32(void const *const input, size_t const length, uint32_t const seed
     }
 
     while (remaining != 0) {
-        hash += p[offset] * PRIME32_5;
+        hash += (uint32_t) data[offset] * PRIME32_5;
         hash  = XXH_rotl32(hash, 11);
         hash *= PRIME32_1;
         --remaining;
@@ -174,8 +174,9 @@ int main(void)
     uint32_t byte_gen = prime;
     int i = 0;
 
+    /* Fill the test_data buffer with "random" data */
     for (; i < TEST_DATA_SIZE; i++) {
-        test_data[i] = (uint8_t)(byte_gen >> 24);
+        test_data[i] = (uint8_t) (byte_gen >> 24);
         byte_gen *= byte_gen;
     }
 
