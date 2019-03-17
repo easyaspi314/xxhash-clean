@@ -27,7 +27,7 @@ CXXFLAGS := $(EXTRA_CXXFLAGS) -O3 -Wall -Wextra -Wcast-qual -Wcast-align -Wshado
             -Wwrite-strings -Wredundant-decls -Wstrict-overflow=5 -Wpedantic \
             -std=c++98 -Werror
 
-XXHSUM_OBJS := xxhash32-streaming-ref.o xxhash64-streaming-ref.o xxhsum-ref.o
+XXHSUM_EXAMPLE_OBJS := xxhash32-streaming-ref.o xxhash64-streaming-ref.o xxhsum-example.o
 # Define *.exe as extension for Windows systems
 ifneq (,$(filter Windows%,$(OS)))
 EXT =.exe
@@ -42,17 +42,17 @@ xxhash64-streaming-ref$(EXT): CFLAGS += -Wno-long-long
 xxhash64-streaming-ref.o: CFLAGS += -Wno-long-long
 xxhash64-streaming-ref-cxx$(EXT): CXXFLAGS += -Wno-long-long -Wno-c++98-compat-pedantic
 
-xxhsum-ref.o: CFLAGS += -Wno-long-long
+xxhsum-example.o: CFLAGS += -Wno-long-long
 
-all: xxhsum-ref$(EXT) xxhash64-ref$(EXT) xxhash32-ref$(EXT) xxhash32-ref-cxx$(EXT) xxhash64-ref-cxx$(EXT) \
+all: xxhsum-example$(EXT) xxhash64-ref$(EXT) xxhash32-ref$(EXT) xxhash32-ref-cxx$(EXT) xxhash64-ref-cxx$(EXT) \
      xxhash32-streaming-ref$(EXT)  xxhash64-streaming-ref$(EXT) xxhash32-streaming-ref-cxx$(EXT) \
      xxhash64-streaming-ref-cxx$(EXT)
 cxx: xxhash32-ref-cxx$(EXT) xxhash64-ref-cxx$(EXT)
 
-xxhsum-ref$(EXT): $(XXHSUM_OBJS) xxhash-ref.h
-	$(CC) $(CFLAGS) $(XXHSUM_OBJS) -o xxhsum-ref$(EXT)
+xxhsum-example$(EXT): $(XXHSUM_EXAMPLE_OBJS) xxhash-ref.h
+	$(CC) $(CFLAGS) $(XXHSUM_EXAMPLE_OBJS) -o xxhsum-example$(EXT)
 
-$(XXHSUM_OBJS): %.o: %.c
+$(XXHSUM_EXAMPLE_OBJS): %.o: %.c
 	$(CC) -c $(CFLAGS) $< -o $@
 
 xxhash32-ref$(EXT): xxhash32-ref.c
@@ -83,6 +83,6 @@ xxhash64-streaming-ref-cxx$(EXT): xxhash64-streaming-ref.c
 clean:
 	$(RM) xxhash32-ref$(EXT) xxhash64-ref$(EXT) xxhash32-ref-cxx$(EXT) xxhash64-ref-cxx$(EXT) \
 	$(RM) xxhash32-streaming-ref$(EXT) xxhash64-streaming-ref$(EXT) xxhash32-streaming-ref-cxx$(EXT) \
-    xxhash64-streaming-ref-cxx$(EXT) xxhsum-ref$(EXT) $(XXHSUM_OBJS)
+    xxhash64-streaming-ref-cxx$(EXT) xxhsum-example$(EXT) $(XXHSUM_EXAMPLE_OBJS)
 
 .PHONY: all clean cxx

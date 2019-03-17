@@ -60,3 +60,5 @@ xxhash32-streaming-ref
 xxhash64-streaming-ref
 xxhash32-streaming-ref-cxx
 xxhash64-streaming-ref-cxx
+
+xxhsum-example
