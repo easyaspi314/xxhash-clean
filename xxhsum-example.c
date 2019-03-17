@@ -63,7 +63,10 @@ static void hash_file_32(char const *const filename)
     size_t count;
     FILE *file = open_file(filename);
 
-    XXH32_reset(state_32, 0);
+    if (XXH32_reset(state_32, 0) == XXH_ERROR) {
+        fprintf(stderr, "Error resetting hash state.\n");
+        exit(1);
+    }
 
     /* Read in chunks. */
     while ((count = fread(buffer, 1, sizeof(buffer), file)) != 0) {
@@ -71,7 +74,10 @@ static void hash_file_32(char const *const filename)
             fprintf(stderr, "Error reading file %s: %s.\n", filename, strerror(errno));
             exit(1);
         }
-        XXH32_update(state_32, buffer, count);
+        if (XXH32_update(state_32, buffer, count) == XXH_ERROR) {
+            fprintf(stderr, "Error hashing data.\n");
+            exit(1);
+        }
     }
     fclose(file);
 
@@ -84,7 +90,10 @@ static void hash_file_64(char const *const filename)
     size_t count;
     FILE *file = open_file(filename);
 
-    XXH64_reset(state_64, 0);
+    if (XXH64_reset(state_64, 0) == XXH_ERROR) {
+        fprintf(stderr, "Error resetting hash state.\n");
+        exit(1);
+    }
 
     /* Read in chunks. */
     while ((count = fread(buffer, 1, sizeof(buffer), file)) != 0) {
@@ -92,7 +101,10 @@ static void hash_file_64(char const *const filename)
             fprintf(stderr, "Error reading file '%s': %s.\n", filename, strerror(errno));
             exit(1);
         }
-        XXH64_update(state_64, buffer, count);
+        if (XXH64_update(state_64, buffer, count) == XXH_ERROR) {
+            fprintf(stderr, "Error hashing data.\n");
+            exit(1);
+        }
     }
     fclose(file);
 
@@ -120,6 +132,11 @@ int main(int argc, char *argv[]) {
 
     state_32 = XXH32_createState();
     state_64 = XXH64_createState();
+
+    if (state_32 == NULL || state_64 == NULL) {
+        fprintf(stderr, "Out of memory.\n");
+        return 1;
+    }
 
     if (strcmp(argv[1], "-H0") == 0) {
         ++i;
