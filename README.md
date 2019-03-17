@@ -18,7 +18,7 @@ This version focuses on the following:
  - **Correctness:** Everything is (excessively?) const-correct,
    endian-independent, and standards compliant. Give me `-Weverything`, I
    can take it.
- - **Compactness:** The code is very short. Light documentation is added 
+ - **Compactness:** The code is very short. Light documentation is added
    but the code only stands at about 240 lines for `XXH64` and 200 lines
    for `XXH32`, about 50 of which are from tests.
  - **Simplicity:** This implementation tries to make the code as clear as
@@ -35,6 +35,10 @@ This does impact performance a lot, for example, Clang will autovectorize
 resulting in stupid slowdowns.
 
 As soon as the algorithm is finalized, `XXH3` will also be added.
+
+This also provides `xxhsum-example.c` which shows how to use xxhash's
+streaming functions to read and checksum files. It isn't a fully-featured
+tool, and it shares no code with xxhsum.c from the official repository.
 
 ### License
 
