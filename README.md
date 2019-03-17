@@ -28,12 +28,13 @@ This version focuses on the following:
    data and `extern "C"`), no ugly SIMD intrinsics, no inline assembly
    hacks, nothing.
 
+The streaming implementations are in separate files to keep things clean.
+
 This does impact performance a lot, for example, Clang will autovectorize
 `XXH32` with a bunch of `pshufb` instructions when reading the data,
 resulting in stupid slowdowns.
 
-As soon as the algorithm is finalized, `XXH3` will also be added. I may
-also add the incremental `XXH32` and `XXH64` variants.
+As soon as the algorithm is finalized, `XXH3` will also be added.
 
 ### License
 

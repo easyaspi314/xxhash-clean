@@ -37,8 +37,12 @@ endif
 # We do use long long in xxh64, but everything else must be ansi.
 xxhash64-ref$(EXT): CFLAGS += -Wno-long-long
 xxhash64-ref-cxx$(EXT): CXXFLAGS += -Wno-long-long -Wno-c++98-compat-pedantic
+xxhash64-streaming-ref$(EXT): CFLAGS += -Wno-long-long
+xxhash64-streaming-ref-cxx$(EXT): CXXFLAGS += -Wno-long-long -Wno-c++98-compat-pedantic
 
-all: xxhash64-ref$(EXT) xxhash32-ref$(EXT) xxhash32-ref-cxx$(EXT) xxhash64-ref-cxx$(EXT)
+all: xxhash64-ref$(EXT) xxhash32-ref$(EXT) xxhash32-ref-cxx$(EXT) xxhash64-ref-cxx$(EXT) \
+     xxhash32-streaming-ref$(EXT)  xxhash64-streaming-ref$(EXT) xxhash32-streaming-ref-cxx$(EXT) \
+     xxhash64-streaming-ref-cxx$(EXT)
 cxx: xxhash32-ref-cxx$(EXT) xxhash64-ref-cxx$(EXT)
 
 xxhash32-ref$(EXT): xxhash32-ref.c
@@ -53,7 +57,22 @@ xxhash32-ref-cxx$(EXT): xxhash32-ref.c
 xxhash64-ref-cxx$(EXT): xxhash64-ref.c
 	$(CXX) -x c++ $(CXXFLAGS) -DXXH_SELFTEST $< -o $@
 
+xxhash32-streaming-ref$(EXT): xxhash32-streaming-ref.c
+	$(CC) $(CFLAGS) -DXXH_SELFTEST $< -o $@
+
+xxhash64-streaming-ref$(EXT): xxhash64-streaming-ref.c
+	$(CC) $(CFLAGS) -DXXH_SELFTEST $< -o $@
+
+xxhash32-streaming-ref-cxx$(EXT): xxhash32-streaming-ref.c
+	$(CXX) -x c++ $(CXXFLAGS) -DXXH_SELFTEST $< -o $@
+
+xxhash64-streaming-ref-cxx$(EXT): xxhash64-streaming-ref.c
+	$(CXX) -x c++ $(CXXFLAGS) -DXXH_SELFTEST $< -o $@
+
+
 clean:
-	$(RM) xxhash32-ref$(EXT) xxhash64-ref$(EXT) xxhash32-ref-cxx$(EXT) xxhash64-ref-cxx$(EXT)
+	$(RM) xxhash32-ref$(EXT) xxhash64-ref$(EXT) xxhash32-ref-cxx$(EXT) xxhash64-ref-cxx$(EXT) \
+	$(RM) xxhash32-streaming-ref$(EXT) xxhash64-streaming-ref$(EXT) xxhash32-streaming-ref-cxx$(EXT) \
+    xxhash64-streaming-ref-cxx$(EXT)
 
 .PHONY: all clean cxx

@@ -55,3 +55,8 @@ xxhash32-ref
 xxhash64-ref
 xxhash32-ref-cxx
 xxhash64-ref-cxx
+
+xxhash32-streaming-ref
+xxhash64-streaming-ref
+xxhash32-streaming-ref-cxx
+xxhash64-streaming-ref-cxx
