@@ -197,7 +197,7 @@ static int test_num = 0;
 static uint32_t const PRIME32_1 = 0x9E3779B1U; /* 0b10011110001101110111100110110001 */
 
 /* Checks a hash value. */
-static void test_sequence(const uint8_t *const test_data, size_t const length,
+static void test_sequence(uint8_t const *const test_data, size_t const length,
                           uint64_t const seed, uint64_t const expected)
 {
     uint64_t const result = XXH64(test_data, length, seed);

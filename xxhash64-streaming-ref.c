@@ -317,7 +317,7 @@ static int test_num = 0;
 static uint32_t const PRIME32_1 = 0x9E3779B1U; /* 0b10011110001101110111100110110001 */
 
 /* Checks a hash value. */
-static void test_sequence(const uint8_t *const test_data, size_t const length,
+static void test_sequence(uint8_t const *const test_data, size_t const length,
                           uint64_t const seed, uint64_t const expected)
 {
     XXH64_state_t *state = XXH64_createState();
@@ -352,7 +352,7 @@ static void test_sequence(const uint8_t *const test_data, size_t const length,
 
 int main(void)
 {
-    const uint32_t prime = PRIME32_1;
+    uint32_t const prime = PRIME32_1;
     uint8_t test_data[TEST_DATA_SIZE] = {0};
     uint32_t byte_gen = prime;
     int i = 0;

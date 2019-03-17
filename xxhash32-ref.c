@@ -157,7 +157,7 @@ uint32_t XXH32(void const *const input, size_t const length, uint32_t const seed
 static int test_num = 0;
 
 /* Checks a hash value. */
-static void test_sequence(const uint8_t *const test_data, size_t const length,
+static void test_sequence(uint8_t const *const test_data, size_t const length,
                           uint32_t const seed, uint32_t const expected)
 {
     uint32_t const result = XXH32(test_data, length, seed);
@@ -170,7 +170,7 @@ static void test_sequence(const uint8_t *const test_data, size_t const length,
 
 int main(void)
 {
-    const uint32_t prime = PRIME32_1;
+    uint32_t const prime = PRIME32_1;
     uint8_t test_data[TEST_DATA_SIZE] = {0};
     uint32_t byte_gen = prime;
     int i = 0;
