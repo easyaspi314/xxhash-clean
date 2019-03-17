@@ -40,7 +40,7 @@
  * This file aims to be 100% compatible with C90/C++98, with the additional
  * requirement of stdint.h and long long. No library functions are used. */
 
-#include <stdlib.h> /* size_t */
+#include <stddef.h> /* size_t, NULL */
 #include <stdint.h> /* uint8_t, uint32_t, uint64_t */
 
 #ifdef __cplusplus
@@ -189,7 +189,8 @@ uint64_t XXH64(void const *const input, size_t const length, uint64_t const seed
 }
 
 #ifdef XXH_SELFTEST
-#include <stdio.h> /* fprintf, puts */
+#include <stdio.h>  /* fprintf, puts */
+#include <stdlib.h> /* exit */
 
 #define TEST_DATA_SIZE 101
 static int test_num = 0;
@@ -201,7 +202,7 @@ static void test_sequence(const uint8_t *const test_data, size_t const length,
 {
     uint64_t const result = XXH64(test_data, length, seed);
     if (result != expected) {
-        fprintf(stderr, "\rError: Test %i: Internal sanity check failed!\n", test_num++);
+        fprintf(stderr, "Error: Test %i: XXH64 test failed!\n", ++test_num);
         fprintf(stderr, "\rExpected value: 0x%08X%08X. Actual value: 0x%08X%08X.\n",
                 (uint32_t) (expected >> 32), (uint32_t) expected, (uint32_t) (result >> 32), (uint32_t) result);
         exit(1);

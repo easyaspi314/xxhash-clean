@@ -39,7 +39,7 @@
  * This file aims to be 100% compatible with C90/C++98, with the additional
  * requirement of stdint.h. No library functions are used. */
 
-#include <stdlib.h> /* size_t, NULL, exit */
+#include <stddef.h> /* size_t, NULL */
 #include <stdint.h> /* uint8_t, uint32_t */
 
 #ifdef __cplusplus
@@ -54,7 +54,7 @@ static uint32_t const PRIME32_4 = 0x27D4EB2FU;   /* 0b00100111110101001110101100
 static uint32_t const PRIME32_5 = 0x165667B1U;   /* 0b00010110010101100110011110110001 */
 
 /* Rotates value left by amount. */
-static uint32_t XXH_rotl32(uint32_t value, uint32_t amount)
+static uint32_t XXH_rotl32(uint32_t const value, uint32_t const amount)
 {
     return (value << amount) | (value >> (32 - amount));
 }
@@ -150,7 +150,8 @@ uint32_t XXH32(void const *const input, size_t const length, uint32_t const seed
 }
 
 #ifdef XXH_SELFTEST
-#include <stdio.h> /* fprintf, puts */
+#include <stdio.h>  /* fprintf, puts */
+#include <stdlib.h> /* exit */
 
 #define TEST_DATA_SIZE 101
 static int test_num = 0;
@@ -161,8 +162,8 @@ static void test_sequence(const uint8_t *const test_data, size_t const length,
 {
     uint32_t const result = XXH32(test_data, length, seed);
     if (result != expected) {
-        fprintf(stderr, "\rError: Test %i: Internal sanity check failed!\n", test_num++);
-        fprintf(stderr, "\rExpected value: 0x%08X. Actual value: 0x%08X.\n", expected, result);
+        fprintf(stderr, "Error: Test %i: XXH32 test failed!\n", ++test_num);
+        fprintf(stderr, "Expected value: 0x%08X. Actual value: 0x%08X.\n", expected, result);
         exit(1);
     }
 }
