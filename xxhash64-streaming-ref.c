@@ -239,9 +239,9 @@ XXH_errorcode XXH64_update(XXH64_state_t *const state, void const *const input, 
         state->lane4 = XXH64_round(state->lane4, XXH_read64(state->temp_buffer, 24));
 
         /* done with the rounds */
-        state->temp_buffer_size = 0;
         remaining -= 32;
-        offset += 32;
+        offset += 32 - state->temp_buffer_size;
+        state->temp_buffer_size = 0;
     }
 
     if (remaining != 0) {

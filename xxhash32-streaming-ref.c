@@ -219,9 +219,9 @@ XXH_errorcode XXH32_update(XXH32_state_t *const state, void const *const input, 
         state->lane4 = XXH32_round(state->lane4, XXH_read32(state->temp_buffer, 12));
 
         /* done with the rounds */
-        state->temp_buffer_size = 0;
+        offset += 16 - state->temp_buffer_size;
         remaining -= 16;
-        offset += 16;
+        state->temp_buffer_size = 0;
     }
 
     if (remaining != 0) {
