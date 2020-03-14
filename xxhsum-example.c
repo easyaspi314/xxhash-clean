@@ -108,7 +108,7 @@ static void hash_file_64(char const *const filename)
     }
     fclose(file);
 
-    printf("%016llx  %s\n", XXH64_digest(state_64), filename);
+    printf("%016llx  %s\n", (unsigned long long)XXH64_digest(state_64), filename);
 }
 
 #ifdef __GNUC__
