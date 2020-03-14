@@ -1,6 +1,6 @@
 # xxHash Clean C Reference Implementation
 
-This is a cleaned up C reference implementation of `XXH32` and `XXH64`, inspired by the [HighwayHash C implementation](https://github.com/google/highwayhash/blob/master/c/highwayhash.c).
+This is a cleaned up C reference implementation of `XXH32`, `XXH64`, `XXH3_64bits`, and `XXH3_128bits`, inspired by the [HighwayHash C implementation](https://github.com/google/highwayhash/blob/master/c/highwayhash.c).
 
 **Warning: Performance is not the goal of this implementation.**
 
@@ -8,22 +8,21 @@ If you want a fast xxHash implementation, see the [official version](https://git
 by [Cyan4973](https://github.com/Cyan4973).
 
 This version focuses on the following:
- - **Portability:** This code is all C90 and C++98 compatible with the additional requirement of `stdint.h` and `long long` (`XXH64` only).
+ - **Portability:** This code is all C90 and C++98 compatible with the additional requirement of `stdint.h` and `long long` (`XXH32` does not need `long long`).
  - **"Port-ability":** The single shot code only works with integers and arrays directly, not relying on any library functions like `memcpy`. The only `#include`s are for typedefs, so it would be very easy to port to another language. However, the streaming versions do rely on some functions, only because it is impossible or really ugly to do otherwise.
    - `memcpy`
    - `malloc`
    - `memset`
    - `free`
  - **Correctness:** Everything is (excessively?) const-correct, endian-independent, and standards compliant. Give me `-Weverything`, I can take it.
- - **Compactness:** The code is very short. Light documentation is added but the code only stands at about 240 lines for `XXH64` and 200 lines for `XXH32`, about 50 of which are from tests.
+ - **Compactness:** The code is very short. Light documentation is added but the code only stands at about 240 lines for `XXH64` and 200 lines for `XXH32`, about 50 of which are from tests. `XXH3` squeezes to umder 800 lines.
+    - The code also compiles very small.w
  - **Simplicity:** This implementation tries to make the code as clear as possible. Loops are rerolled, pointer arithmetic is removed in favor of counters, etc. Nothing is more complicated than it needs to be.
  - **Cleanliness:** No ugly macros, no `#ifdef` blocks (except for test data and `extern "C"`), no ugly SIMD intrinsics, no inline assembly hacks, nothing.
 
-The streaming implementations are in separate files to keep things clean.
+The streaming implementations are in separate files to keep things clean. Only `XXH32` and `XXH64` are implemented for now.
 
 This does impact performance a lot, for example, Clang will autovectorize `XXH32` with a bunch of `pshufb` instructions when reading the data, resulting in stupid slowdowns.
-
-As soon as the algorithm is finalized, `XXH3` will also be added.
 
 This also provides `xxhsum-example.c` which shows how to use xxhash's streaming functions to read and checksum files. It isn't a fully-featured tool, and it shares no code with xxhsum.c from the official repository.
 
@@ -31,8 +30,8 @@ This also provides `xxhsum-example.c` which shows how to use xxhash's streaming 
 
 ```
 xxHash Library
-Copyright (c) 2012-2019, Yann Collet
-Copyright (c) 2019, easyaspi314
+Copyright (c) 2012-2020, Yann Collet
+Copyright (c) 2019-2020, Devin Hussey (easyaspi314)
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,

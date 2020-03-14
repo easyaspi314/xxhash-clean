@@ -1,7 +1,7 @@
 /*
  *  xxHash - Fast Hash algorithm
- *  Copyright (C) 2012-2019, Yann Collet
- *  Copyright (C) 2019, easyaspi314 (Devin)
+ *  Copyright (C) 2012-2020 Yann Collet
+ *  Copyright (C) 2019-2020 Devin Hussey (easyaspi314)
  *
  *  BSD 2-Clause License (http://www.opensource.org/licenses/bsd-license.php)
  *
