@@ -1,0 +1,108 @@
+include "llvm.saw";
+
+import "xxhash.cry";
+
+let {{
+  PRIME32_1 = 0x9E3779B1 : [32]
+  PRIME32_2 = 0x85EBCA77 : [32]
+  PRIME32_3 = 0xC2B2AE3D : [32]
+  PRIME32_4 = 0x27D4EB2F : [32]
+  PRIME32_5 = 0x165667B1 : [32]
+
+  XXH32_round : [32] -> [32] -> [32]
+  XXH32_round accN laneN = ((accN + laneN * PRIME32_2) <<< 13) * PRIME32_1
+
+  XXH32_avalanche : [32] -> [32]
+  XXH32_avalanche acc0 = acc5
+    where acc1 = acc0 ^ (acc0 >> 15)
+          acc2 = acc1 * PRIME32_2
+          acc3 = acc2 ^ (acc2 >> 13)
+          acc4 = acc3 * PRIME32_3
+          acc5 = acc4 ^ (acc4 >> 16)
+}};
+
+xxhash32_ref_bc <- llvm_load_module "../xxhash32-ref.bc";
+
+//uint32_t XXH_rotl32(uint32_t const value, uint32_t const amount)
+let XXH_rotl32_spec = do {
+  value <- variable uint32_t "value" FRESH;
+  amount <- variable uint32_t "amount" FRESH;
+
+  let (value_t, amount_t) = (value.t, amount.t);
+  
+  //It would be great to be able to remove this precondition.
+  precond {{ (amount_t > 0) && (amount_t < 32) }};
+
+  execute [value.s, amount.s];
+
+  returns (from_cryptol {{ value_t <<< amount_t }});
+};
+
+XXH_rotl32_result <- llvm_verify xxhash32_ref_bc "XXH_rotl32" [] XXH_rotl32_spec;
+
+
+//uint32_t XXH32_round(uint32_t lane, uint32_t const input)
+let XXH32_round_spec = do {
+  lane <- variable uint32_t "lane" FRESH;
+  input <- variable uint32_t "input" FRESH;
+
+  execute [lane.s, input.s];
+
+  let (lane_t, input_t) = (lane.t, input.t);
+  //The names of these inputs are swapped from how they are called in
+  //the xxHash spec.
+  returns (from_cryptol {{ XXH32_round lane_t input_t }});
+};
+
+XXH32_round_result <- llvm_verify xxhash32_ref_bc "XXH32_round" [] XXH32_round_spec;
+
+
+//uint32_t XXH32_avalanche(uint32_t hash)
+let XXH32_avalanche_spec = do {
+  hash <- variable uint32_t "avalanche" FRESH;
+
+  execute [hash.s];
+
+  let hash_t = hash.t;
+  returns (from_cryptol {{ XXH32_avalanche hash_t }});
+};
+
+XXH32_avalanche_result <- llvm_verify xxhash32_ref_bc "XXH32_avalanche" [] XXH32_avalanche_spec;
+
+
+//uint32_t XXH32(void const *const input, size_t const length, uint32_t const seed)
+let XXH32_NULL_spec = do {
+  length <- variable uint64_t "length" FRESH;
+  seed <- variable uint32_t "seed" FRESH;
+
+  execute [crucible_null, length.s, seed.s];
+
+  let seed_t = seed.t;
+  returns (from_cryptol {{ XXH32`{L=0} zero seed_t }});
+};
+
+XXH32_NULL_result <- llvm_verify xxhash32_ref_bc "XXH32" [] XXH32_NULL_spec;
+
+
+//uint32_t XXH32(void const *const input, size_t const length, uint32_t const seed)
+let XXH32_spec (nBytes : Int) = do {
+  input <- alloc CONST (llvm_array nBytes uint8_t) "input" FRESH;
+  length <- variable uint64_t "length" (STALE {{ `nBytes : [64] }});
+  seed <- variable uint32_t "seed" FRESH;
+
+  execute [input.p, length.s, seed.s];
+
+  let (input_t, seed_t) = (input.t, seed.t);
+  returns (from_cryptol {{ XXH32`{L=nBytes} input_t seed_t }});
+};
+
+let XXH32_result (nBytes : Int) = crucible_llvm_verify xxhash32_ref_bc "XXH32" [XXH_rotl32_result, XXH32_round_result, XXH32_avalanche_result] true (XXH32_spec nBytes) yices;
+
+let XXH32_verify_print n = do {
+    print (str_concat "Checking XXH32 correct for nBytes=" (show n));
+    XXH32_result n;
+};
+
+XXH32_results <- for [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,32,64,128]
+                 XXH32_verify_print;
+
