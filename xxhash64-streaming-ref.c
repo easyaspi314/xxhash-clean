@@ -55,10 +55,10 @@ extern "C" {
 /* Note: This is an opaque structure. The layout differs from the official implementation,
  * it is more compact and orders are different. */
 typedef struct XXH64_state_s {
-   uint64_t lane1;             /* Our lanes. */
-   uint64_t lane2;
-   uint64_t lane3;
-   uint64_t lane4;
+   uint64_t acc1;             /* Our accumulators. */
+   uint64_t acc2;
+   uint64_t acc3;
+   uint64_t acc4;
    uint8_t  temp_buffer[32];   /* Leftover data from a previous update */
    uint32_t temp_buffer_size;  /* how much data is in the temp buffer */
    XXH_bool has_large_len;     /* Whether we had enough to do full rounds. */
@@ -89,10 +89,10 @@ static uint64_t const PRIME64_3 = 0x165667B19E3779F9ULL;   /* 0b0001011001010110
 static uint64_t const PRIME64_4 = 0x85EBCA77C2B2AE63ULL;   /* 0b1000010111101011110010100111011111000010101100101010111001100011 */
 static uint64_t const PRIME64_5 = 0x27D4EB2F165667C5ULL;   /* 0b0010011111010100111010110010111100010110010101100110011111000101 */
 
-/* Rotates value left by amount. */
-static uint64_t XXH_rotl64(uint64_t const value, uint32_t const amount)
+/* Rotates value left by amt. */
+static uint64_t XXH_rotl64(uint64_t const value, uint32_t const amt)
 {
-    return (value << amount) | (value >> (64 - amount));
+    return (value << (amt % 64)) | (value >> (64 - (amt % 64)));
 }
 
 /* Portably reads a 32-bit little endian integer from data at the given offset. */
@@ -117,19 +117,19 @@ static uint64_t XXH_read64(uint8_t const *const data, size_t const offset)
         | ((uint64_t) data[offset + 7] << 56);
 }
 
-/* Mixes input into lane. */
-static uint64_t XXH64_round(uint64_t lane, uint64_t const input)
+/* Mixes input into acc. */
+static uint64_t XXH64_round(uint64_t acc, uint64_t const input)
 {
-    lane += input * PRIME64_2;
-    lane  = XXH_rotl64(lane, 31);
-    lane *= PRIME64_1;
-    return lane;
+    acc += input * PRIME64_2;
+    acc  = XXH_rotl64(acc, 31);
+    acc *= PRIME64_1;
+    return acc;
 }
 
-/* Merges lane into hash to finalize */
-static uint64_t XXH64_mergeRound(uint64_t hash, uint64_t const lane)
+/* Merges acc into hash to finalize */
+static uint64_t XXH64_mergeRound(uint64_t hash, uint64_t const acc)
 {
-    hash ^= XXH64_round(0, lane);
+    hash ^= XXH64_round(0, acc);
     hash *= PRIME64_1;
     hash += PRIME64_4;
     return hash;
@@ -188,10 +188,10 @@ XXH_errorcode XXH64_reset(XXH64_state_t *const state, uint64_t const seed)
 
     memset(state, 0, sizeof(XXH64_state_t));
 
-    state->lane1 = seed + PRIME64_1 + PRIME64_2;
-    state->lane2 = seed + PRIME64_2;
-    state->lane3 = seed + 0;
-    state->lane4 = seed - PRIME64_1;
+    state->acc1 = seed + PRIME64_1 + PRIME64_2;
+    state->acc2 = seed + PRIME64_2;
+    state->acc3 = seed + 0;
+    state->acc4 = seed - PRIME64_1;
     return XXH_OK;
 }
 
@@ -233,10 +233,10 @@ XXH_errorcode XXH64_update(XXH64_state_t *const state, void const *const input, 
         memcpy(&state->temp_buffer[state->temp_buffer_size], &data[offset], 32 - state->temp_buffer_size);
 
         /* do our rounds */
-        state->lane1 = XXH64_round(state->lane1, XXH_read64(state->temp_buffer, 0));
-        state->lane2 = XXH64_round(state->lane2, XXH_read64(state->temp_buffer, 8));
-        state->lane3 = XXH64_round(state->lane3, XXH_read64(state->temp_buffer, 16));
-        state->lane4 = XXH64_round(state->lane4, XXH_read64(state->temp_buffer, 24));
+        state->acc1 = XXH64_round(state->acc1, XXH_read64(state->temp_buffer, 0));
+        state->acc2 = XXH64_round(state->acc2, XXH_read64(state->temp_buffer, 8));
+        state->acc3 = XXH64_round(state->acc3, XXH_read64(state->temp_buffer, 16));
+        state->acc4 = XXH64_round(state->acc4, XXH_read64(state->temp_buffer, 24));
 
         /* done with the rounds */
         remaining -= 32;
@@ -262,18 +262,18 @@ uint64_t XXH64_digest(XXH64_state_t const *const state)
     uint64_t offset = 0;
 
     if (state->has_large_len == TRUE) {
-        hash = XXH_rotl64(state->lane1, 1)
-             + XXH_rotl64(state->lane2, 7)
-             + XXH_rotl64(state->lane3, 12)
-             + XXH_rotl64(state->lane4, 18);
+        hash = XXH_rotl64(state->acc1, 1)
+             + XXH_rotl64(state->acc2, 7)
+             + XXH_rotl64(state->acc3, 12)
+             + XXH_rotl64(state->acc4, 18);
 
-        hash = XXH64_mergeRound(hash, state->lane1);
-        hash = XXH64_mergeRound(hash, state->lane2);
-        hash = XXH64_mergeRound(hash, state->lane3);
-        hash = XXH64_mergeRound(hash, state->lane4);
+        hash = XXH64_mergeRound(hash, state->acc1);
+        hash = XXH64_mergeRound(hash, state->acc2);
+        hash = XXH64_mergeRound(hash, state->acc3);
+        hash = XXH64_mergeRound(hash, state->acc4);
     } else {
         /* Not enough data for the main loop, put something in there instead. */
-        hash = state->lane3 /* will be seed because of the + 0 */ + PRIME64_5;
+        hash = state->acc3 /* will be seed because of the + 0 */ + PRIME64_5;
     }
 
     hash += state->total_len_64;

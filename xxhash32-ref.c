@@ -53,10 +53,10 @@ static uint32_t const PRIME32_3 = 0xC2B2AE3DU;   /* 0b11000010101100101010111000
 static uint32_t const PRIME32_4 = 0x27D4EB2FU;   /* 0b00100111110101001110101100101111 */
 static uint32_t const PRIME32_5 = 0x165667B1U;   /* 0b00010110010101100110011110110001 */
 
-/* Rotates value left by amount. */
-static uint32_t XXH_rotl32(uint32_t const value, uint32_t const amount)
+/* Rotates value left by amt. */
+static uint32_t XXH_rotl32(uint32_t const value, uint32_t const amt)
 {
-    return (value << amount) | (value >> (32 - amount));
+    return (value << (amt % 32)) | (value >> (32 - (amt % 32)));
 }
 
 /* Portably reads a 32-bit little endian integer from data at the given offset. */
@@ -68,13 +68,13 @@ static uint32_t XXH_read32(uint8_t const *const data, size_t const offset)
         | ((uint32_t) data[offset + 3] << 24);
 }
 
-/* Mixes input into lane. */
-static uint32_t XXH32_round(uint32_t lane, uint32_t const input)
+/* Mixes input into acc. */
+static uint32_t XXH32_round(uint32_t acc, uint32_t const input)
 {
-    lane += input * PRIME32_2;
-    lane  = XXH_rotl32(lane, 13);
-    lane *= PRIME32_1;
-    return lane;
+    acc += input * PRIME32_2;
+    acc  = XXH_rotl32(acc, 13);
+    acc *= PRIME32_1;
+    return acc;
 }
 
 /* Mixes all bits to finalize the hash. */
@@ -108,21 +108,21 @@ uint32_t XXH32(void const *const input, size_t const length, uint32_t const seed
     }
 
     if (remaining >= 16) {
-        /* Initialize our lanes */
-        uint32_t lane1 = seed + PRIME32_1 + PRIME32_2;
-        uint32_t lane2 = seed + PRIME32_2;
-        uint32_t lane3 = seed + 0;
-        uint32_t lane4 = seed - PRIME32_1;
+        /* Initialize our accumulators */
+        uint32_t acc1 = seed + PRIME32_1 + PRIME32_2;
+        uint32_t acc2 = seed + PRIME32_2;
+        uint32_t acc3 = seed + 0;
+        uint32_t acc4 = seed - PRIME32_1;
 
         while (remaining >= 16) {
-            lane1 = XXH32_round(lane1, XXH_read32(data, offset)); offset += 4;
-            lane2 = XXH32_round(lane2, XXH_read32(data, offset)); offset += 4;
-            lane3 = XXH32_round(lane3, XXH_read32(data, offset)); offset += 4;
-            lane4 = XXH32_round(lane4, XXH_read32(data, offset)); offset += 4;
+            acc1 = XXH32_round(acc1, XXH_read32(data, offset)); offset += 4;
+            acc2 = XXH32_round(acc2, XXH_read32(data, offset)); offset += 4;
+            acc3 = XXH32_round(acc3, XXH_read32(data, offset)); offset += 4;
+            acc4 = XXH32_round(acc4, XXH_read32(data, offset)); offset += 4;
             remaining -= 16;
         }
 
-        hash = XXH_rotl32(lane1, 1) + XXH_rotl32(lane2, 7) + XXH_rotl32(lane3, 12) + XXH_rotl32(lane4, 18);
+        hash = XXH_rotl32(acc1, 1) + XXH_rotl32(acc2, 7) + XXH_rotl32(acc3, 12) + XXH_rotl32(acc4, 18);
     } else {
         /* Not enough data for the main loop, put something in there instead. */
         hash = seed + PRIME32_5;

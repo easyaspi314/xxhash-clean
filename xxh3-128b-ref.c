@@ -541,14 +541,21 @@ static XXH128_hash_t XXH3_hashLong_128b(uint8_t const *const input,
                                         uint8_t const *const secret,
                                         size_t const secret_size)
 {
-
-    uint64_t acc[ACC_NB] = { PRIME32_3, PRIME64_1, PRIME64_2, PRIME64_3,
-                             PRIME64_4, PRIME32_2, PRIME64_5, PRIME32_1 };
     size_t const nb_rounds = (secret_size - STRIPE_LEN) / XXH_SECRET_CONSUME_RATE;
     size_t const block_len = STRIPE_LEN * nb_rounds;
     size_t const nb_blocks = length / block_len;
     size_t const nb_stripes = (length - (block_len * nb_blocks)) / STRIPE_LEN;
     size_t n;
+    uint64_t acc[ACC_NB];
+
+    acc[0] = PRIME32_3;
+    acc[1] = PRIME64_1;
+    acc[2] = PRIME64_2;
+    acc[3] = PRIME64_3;
+    acc[4] = PRIME64_4;
+    acc[5] = PRIME32_2;
+    acc[6] = PRIME64_5;
+    acc[7] = PRIME32_1;
 
     for (n = 0; n < nb_blocks; n++) {
         XXH3_accumulate_128b(acc, input + n * block_len, secret, nb_rounds);
@@ -647,13 +654,10 @@ XXH128_hash_t XXH128(void const *const input, size_t const length, XXH64_hash_t 
 #define TEST_DATA_SIZE 2243
 static int test_num = 0;
 
-/* Checks a hash value. */
-static void test_sequence(uint8_t const *const test_data, size_t const length,
-                          uint64_t const seed, XXH128_hash_t const expected)
+static void verify(char const *const test_name, XXH128_hash_t const expected, XXH128_hash_t result)
 {
-    XXH128_hash_t result = XXH3_128bits_withSeed(test_data, length, seed);
     if (result.low64 != expected.low64 || result.high64 != expected.high64) {
-        fprintf(stderr, "Error: Test %i: XXH3_128bits_withSeed test failed!\n", ++test_num);
+        fprintf(stderr, "Error: Test %i: %s test failed!\n", ++test_num, test_name);
         fprintf(stderr, "Got { 0x%08X%08XULL, 0x%08X%08XULL }, expected { 0x%08X%08XULL, 0x%08X%08XULL } \n",
                 (unsigned)(result.low64>>32), (unsigned)result.low64,
                 (unsigned)(result.high64>>32), (unsigned)result.high64,
@@ -661,17 +665,16 @@ static void test_sequence(uint8_t const *const test_data, size_t const length,
                 (unsigned)(expected.high64>>32), (unsigned)expected.high64);
         exit(1);
     }
+}
+/* Checks a hash value. */
+static void test_sequence(uint8_t const *const test_data, size_t const length,
+                          uint64_t const seed, XXH128_hash_t const expected)
+{
+    XXH128_hash_t result = XXH3_128bits_withSeed(test_data, length, seed);
+    verify("XXH3_128bits_withSeed", expected, result);
     if (seed == 0) {
         result = XXH3_128bits(test_data, length);
-        if (result.low64 != expected.low64 || result.high64 != expected.high64) {
-            fprintf(stderr, "Error: Test %i: XXH3_128bits test failed!\n", ++test_num);
-            fprintf(stderr, "Got { 0x%08X%08XULL, 0x%08X%08XULL }, expected { 0x%08X%08XULL, 0x%08X%08XULL } \n",
-                    (unsigned)(result.low64>>32), (unsigned)result.low64,
-                    (unsigned)(result.high64>>32), (unsigned)result.high64,
-                    (unsigned)(expected.low64>>32), (unsigned)expected.low64,
-                    (unsigned)(expected.high64>>32), (unsigned)expected.high64 );
-            exit(1);
-        }
+        verify("XXH3_128bits", expected, result);
     }
 }
 

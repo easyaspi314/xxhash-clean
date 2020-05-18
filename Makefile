@@ -72,32 +72,6 @@ prove: xxhash32-ref.bc xxhash64-ref.bc
 %ref.bc: %ref.c
 	clang $< -o $@ -c -emit-llvm -Wno-long-long -O1 -std=c90
 
-#
-#xxhash32-ref$(EXT): xxhash32-ref.c
-#	$(CC) $(CFLAGS) -DXXH_SELFTEST $< -o $@
-#
-#xxhash64-ref$(EXT): xxhash64-ref.c
-#	$(CC) $(CFLAGS) -DXXH_SELFTEST $< -o $@
-#
-#xxhash32-ref-cxx$(EXT): xxhash32-ref.c
-#	$(CXX) -x c++ $(CXXFLAGS) -DXXH_SELFTEST $< -o $@
-#
-#xxhash64-ref-cxx$(EXT): xxhash64-ref.c
-#	$(CXX) -x c++ $(CXXFLAGS) -DXXH_SELFTEST $< -o $@
-#
-#xxhash32-streaming-ref$(EXT): xxhash32-streaming-ref.c
-#	$(CC) $(CFLAGS) -DXXH_SELFTEST $< -o $@
-#
-#xxhash64-streaming-ref$(EXT): xxhash64-streaming-ref.c
-#	$(CC) $(CFLAGS) -DXXH_SELFTEST $< -o $@
-#
-#xxhash32-streaming-ref-cxx$(EXT): xxhash32-streaming-ref.c
-#	$(CXX) -x c++ $(CXXFLAGS) -DXXH_SELFTEST $< -o $@
-#
-#xxhash64-streaming-ref-cxx$(EXT): xxhash64-streaming-ref.c
-#	$(CXX) -x c++ $(CXXFLAGS) -DXXH_SELFTEST $< -o $@
-
-
 clean:
 	$(RM) xxhash32-ref$(EXT) xxhash64-ref$(EXT) xxhash32-ref-cxx$(EXT) xxhash64-ref-cxx$(EXT) \
 	$(RM) xxhash32-streaming-ref$(EXT) xxhash64-streaming-ref$(EXT) xxhash32-streaming-ref-cxx$(EXT) \

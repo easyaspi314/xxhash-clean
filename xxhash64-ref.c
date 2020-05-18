@@ -54,10 +54,10 @@ static uint64_t const PRIME64_3 = 0x165667B19E3779F9ULL;   /* 0b0001011001010110
 static uint64_t const PRIME64_4 = 0x85EBCA77C2B2AE63ULL;   /* 0b1000010111101011110010100111011111000010101100101010111001100011 */
 static uint64_t const PRIME64_5 = 0x27D4EB2F165667C5ULL;   /* 0b0010011111010100111010110010111100010110010101100110011111000101 */
 
-/* Rotates value left by amount bits. */
-static uint64_t XXH_rotl64(uint64_t const value, uint32_t const amount)
+/* Rotates value left by amt bits. */
+static uint64_t XXH_rotl64(uint64_t const value, uint32_t const amt)
 {
-    return (value << amount) | (value >> (64 - amount));
+    return (value << (amt % 64)) | (value >> (64 - amt % 64));
 }
 
 /* Portably reads a 32-bit little endian integer from data at the given offset. */
@@ -82,19 +82,19 @@ static uint64_t XXH_read64(uint8_t const *const data, size_t const offset)
         | ((uint64_t) data[offset + 7] << 56);
 }
 
-/* Mixes input into lane, this is mostly used in the first loop. */
-static uint64_t XXH64_round(uint64_t lane, uint64_t const input)
+/* Mixes input into acc, this is mostly used in the first loop. */
+static uint64_t XXH64_round(uint64_t acc, uint64_t const input)
 {
-    lane += input * PRIME64_2;
-    lane  = XXH_rotl64(lane, 31);
-    lane *= PRIME64_1;
-    return lane;
+    acc += input * PRIME64_2;
+    acc  = XXH_rotl64(acc, 31);
+    acc *= PRIME64_1;
+    return acc;
 }
 
-/* Merges lane into hash to finalize */
-static uint64_t XXH64_mergeRound(uint64_t hash, uint64_t const lane)
+/* Merges acc into hash to finalize */
+static uint64_t XXH64_mergeRound(uint64_t hash, uint64_t const acc)
 {
-    hash ^= XXH64_round(0, lane);
+    hash ^= XXH64_round(0, acc);
     hash *= PRIME64_1;
     hash += PRIME64_4;
     return hash;
@@ -131,26 +131,26 @@ uint64_t XXH64(void const *const input, size_t const length, uint64_t const seed
     }
 
     if (remaining >= 32) {
-        /* Initialize our lanes */
-        uint64_t lane1 = seed + PRIME64_1 + PRIME64_2;
-        uint64_t lane2 = seed + PRIME64_2;
-        uint64_t lane3 = seed + 0;
-        uint64_t lane4 = seed - PRIME64_1;
+        /* Initialize our accumulators */
+        uint64_t acc1 = seed + PRIME64_1 + PRIME64_2;
+        uint64_t acc2 = seed + PRIME64_2;
+        uint64_t acc3 = seed + 0;
+        uint64_t acc4 = seed - PRIME64_1;
 
         while (remaining >= 32) {
-            lane1 = XXH64_round(lane1, XXH_read64(data, offset)); offset += 8;
-            lane2 = XXH64_round(lane2, XXH_read64(data, offset)); offset += 8;
-            lane3 = XXH64_round(lane3, XXH_read64(data, offset)); offset += 8;
-            lane4 = XXH64_round(lane4, XXH_read64(data, offset)); offset += 8;
+            acc1 = XXH64_round(acc1, XXH_read64(data, offset)); offset += 8;
+            acc2 = XXH64_round(acc2, XXH_read64(data, offset)); offset += 8;
+            acc3 = XXH64_round(acc3, XXH_read64(data, offset)); offset += 8;
+            acc4 = XXH64_round(acc4, XXH_read64(data, offset)); offset += 8;
             remaining -= 32;
         }
 
-        hash = XXH_rotl64(lane1, 1) + XXH_rotl64(lane2, 7) + XXH_rotl64(lane3, 12) + XXH_rotl64(lane4, 18);
+        hash = XXH_rotl64(acc1, 1) + XXH_rotl64(acc2, 7) + XXH_rotl64(acc3, 12) + XXH_rotl64(acc4, 18);
 
-        hash = XXH64_mergeRound(hash, lane1);
-        hash = XXH64_mergeRound(hash, lane2);
-        hash = XXH64_mergeRound(hash, lane3);
-        hash = XXH64_mergeRound(hash, lane4);
+        hash = XXH64_mergeRound(hash, acc1);
+        hash = XXH64_mergeRound(hash, acc2);
+        hash = XXH64_mergeRound(hash, acc3);
+        hash = XXH64_mergeRound(hash, acc4);
     } else {
         /* Not enough data for the main loop, put something in there instead. */
         hash = seed + PRIME64_5;

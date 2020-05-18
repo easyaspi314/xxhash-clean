@@ -55,10 +55,10 @@ extern "C" {
 /* Note: This is an opaque structure. The layout differs from the official implementation,
  * it is more compact and orders are different. */
 typedef struct XXH32_state_s {
-   uint32_t lane1;             /* Our lanes. */
-   uint32_t lane2;
-   uint32_t lane3;
-   uint32_t lane4;
+   uint32_t acc1;             /* Our accumulators. */
+   uint32_t acc2;
+   uint32_t acc3;
+   uint32_t acc4;
    uint8_t  temp_buffer[16];   /* Leftover data from a previous update */
    uint32_t temp_buffer_size;  /* how much data is in the temp buffer */
    XXH_bool has_large_len;     /* Whether we had enough to do full rounds. */
@@ -89,10 +89,10 @@ static uint32_t const PRIME32_3 = 0xC2B2AE3DU;   /* 0b11000010101100101010111000
 static uint32_t const PRIME32_4 = 0x27D4EB2FU;   /* 0b00100111110101001110101100101111 */
 static uint32_t const PRIME32_5 = 0x165667B1U;   /* 0b00010110010101100110011110110001 */
 
-/* Rotates value left by amount. */
-static uint32_t XXH_rotl32(uint32_t const value, uint32_t const amount)
+/* Rotates value left by amt. */
+static uint32_t XXH_rotl32(uint32_t const value, uint32_t const amt)
 {
-    return (value << amount) | (value >> (32 - amount));
+    return (value << (amt % 32)) | (value >> (32 - amt % 32));
 }
 
 /* Portably reads a 32-bit little endian integer from data at the given offset. */
@@ -104,13 +104,13 @@ static uint32_t XXH_read32(uint8_t const *const data, size_t const offset)
         | ((uint32_t) data[offset + 3] << 24);
 }
 
-/* Mixes input into lane. */
-static uint32_t XXH32_round(uint32_t lane, uint32_t const input)
+/* Mixes input into acc. */
+static uint32_t XXH32_round(uint32_t acc, uint32_t const input)
 {
-    lane += input * PRIME32_2;
-    lane  = XXH_rotl32(lane, 13);
-    lane *= PRIME32_1;
-    return lane;
+    acc += input * PRIME32_2;
+    acc  = XXH_rotl32(acc, 13);
+    acc *= PRIME32_1;
+    return acc;
 }
 
 /* Mixes all bits to finalize the hash. */
@@ -168,10 +168,10 @@ XXH_errorcode XXH32_reset(XXH32_state_t *const state, uint32_t const seed)
 
     memset(state, 0, sizeof(XXH32_state_t));
 
-    state->lane1 = seed + PRIME32_1 + PRIME32_2;
-    state->lane2 = seed + PRIME32_2;
-    state->lane3 = seed + 0;
-    state->lane4 = seed - PRIME32_1;
+    state->acc1 = seed + PRIME32_1 + PRIME32_2;
+    state->acc2 = seed + PRIME32_2;
+    state->acc3 = seed + 0;
+    state->acc4 = seed - PRIME32_1;
     return XXH_OK;
 }
 
@@ -213,10 +213,10 @@ XXH_errorcode XXH32_update(XXH32_state_t *const state, void const *const input, 
         memcpy(&state->temp_buffer[state->temp_buffer_size], &data[offset], 16 - state->temp_buffer_size);
 
         /* do our rounds */
-        state->lane1 = XXH32_round(state->lane1, XXH_read32(state->temp_buffer, 0));
-        state->lane2 = XXH32_round(state->lane2, XXH_read32(state->temp_buffer, 4));
-        state->lane3 = XXH32_round(state->lane3, XXH_read32(state->temp_buffer, 8));
-        state->lane4 = XXH32_round(state->lane4, XXH_read32(state->temp_buffer, 12));
+        state->acc1 = XXH32_round(state->acc1, XXH_read32(state->temp_buffer, 0));
+        state->acc2 = XXH32_round(state->acc2, XXH_read32(state->temp_buffer, 4));
+        state->acc3 = XXH32_round(state->acc3, XXH_read32(state->temp_buffer, 8));
+        state->acc4 = XXH32_round(state->acc4, XXH_read32(state->temp_buffer, 12));
 
         /* done with the rounds */
         offset += 16 - state->temp_buffer_size;
@@ -242,13 +242,13 @@ uint32_t XXH32_digest(XXH32_state_t const *const state)
     uint32_t offset = 0;
 
     if (state->has_large_len == TRUE) {
-        hash = XXH_rotl32(state->lane1, 1)
-             + XXH_rotl32(state->lane2, 7)
-             + XXH_rotl32(state->lane3, 12)
-             + XXH_rotl32(state->lane4, 18);
+        hash = XXH_rotl32(state->acc1, 1)
+             + XXH_rotl32(state->acc2, 7)
+             + XXH_rotl32(state->acc3, 12)
+             + XXH_rotl32(state->acc4, 18);
     } else {
         /* Not enough data for the main loop, put something in there instead. */
-        hash = state->lane3 /* will be seed because of the + 0 */ + PRIME32_5;
+        hash = state->acc3 /* will be seed because of the + 0 */ + PRIME32_5;
     }
 
     hash += state->total_len_32;
