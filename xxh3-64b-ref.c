@@ -443,13 +443,21 @@ static XXH64_hash_t XXH3_hashLong_64b(uint8_t const *const input,
                                       uint8_t const *const secret,
                                       size_t const secret_size)
 {
-    uint64_t acc[ACC_NB] = { PRIME32_3, PRIME64_1, PRIME64_2, PRIME64_3,
-                             PRIME64_4, PRIME32_2, PRIME64_5, PRIME32_1 };
     size_t const nb_rounds = (secret_size - STRIPE_LEN) / XXH_SECRET_CONSUME_RATE;
     size_t const block_len = STRIPE_LEN * nb_rounds;
     size_t const nb_blocks = length / block_len;
     size_t const nb_stripes = (length - (block_len * nb_blocks)) / STRIPE_LEN;
     size_t n;
+    uint64_t acc[ACC_NB];
+
+    acc[0] = PRIME32_3;
+    acc[1] = PRIME64_1;
+    acc[2] = PRIME64_2;
+    acc[3] = PRIME64_3;
+    acc[4] = PRIME64_4;
+    acc[5] = PRIME32_2;
+    acc[6] = PRIME64_5;
+    acc[7] = PRIME32_1;
 
     for (n = 0; n < nb_blocks; n++) {
         XXH3_accumulate_64b(acc, input + n * block_len, secret, nb_rounds);
