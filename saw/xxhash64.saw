@@ -23,35 +23,35 @@ let {{
 
 xxhash64_ref_bc <- llvm_load_module "../xxhash64-ref.bc";
 
-//uint64_t XXH_rotl64(uint64_t const value, uint32_t const amount)
+//uint64_t XXH_rotl64(uint64_t const value, uint32_t const amt)
 let XXH_rotl64_spec = do {
   value <- variable uint64_t "value" FRESH;
-  amount <- variable uint32_t "amount" FRESH;
+  amt <- variable uint32_t "amt" FRESH;
 
-  let (value_t, amount_t) = (value.t, amount.t);
+  let (value_t, amt_t) = (value.t, amt.t);
   
   //It would be great to be able to remove this precondition.
-  precond {{ (amount_t > 0) && (amount_t < 64) }};
+  //precond {{ (amt_t > 0) && (amt_t < 64) }};
 
-  execute [value.s, amount.s];
+  execute [value.s, amt.s];
 
-  returns (from_cryptol {{ value_t <<< amount_t }});
+  returns (from_cryptol {{ value_t <<< amt_t }});
 };
 
 XXH_rotl64_result <- llvm_verify xxhash64_ref_bc "XXH_rotl64" [] XXH_rotl64_spec;
 
 
-//uint64_t XXH64_round(uint64_t lane, uint64_t const input)
+//uint64_t XXH64_round(uint64_t acc, uint64_t const input)
 let XXH64_round_spec = do {
-  lane <- variable uint64_t "lane" FRESH;
+  acc <- variable uint64_t "acc" FRESH;
   input <- variable uint64_t "input" FRESH;
 
-  execute [lane.s, input.s];
+  execute [acc.s, input.s];
 
-  let (lane_t, input_t) = (lane.t, input.t);
+  let (acc_t, input_t) = (acc.t, input.t);
   //The names of these inputs are swapped from how they are called in
   //the xxHash spec.
-  returns (from_cryptol {{ XXH64_round lane_t input_t }});
+  returns (from_cryptol {{ XXH64_round acc_t input_t }});
 };
 
 XXH64_round_result <- llvm_verify xxhash64_ref_bc "XXH64_round" [] XXH64_round_spec;
