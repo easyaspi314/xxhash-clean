@@ -66,7 +66,8 @@ $(XXHSUM_EXAMPLE_OBJS): %.o: %.c
 	$(CXX) $(CXXFLAGS) -DXXH_SELFTEST -x c++ $< -o $@
 
 prove: xxhash32-ref.bc xxhash64-ref.bc
-	saw saw/xxhash.saw
+	saw saw/xxhash32.saw
+	saw saw/xxhash64.saw
 
 %ref.bc: %ref.c
 	$(CC) $(CFLAGS) $< -o $@ -c -emit-llvm -Wno-long-long -O1
