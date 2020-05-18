@@ -89,10 +89,10 @@ static uint64_t const PRIME64_3 = 0x165667B19E3779F9ULL;   /* 0b0001011001010110
 static uint64_t const PRIME64_4 = 0x85EBCA77C2B2AE63ULL;   /* 0b1000010111101011110010100111011111000010101100101010111001100011 */
 static uint64_t const PRIME64_5 = 0x27D4EB2F165667C5ULL;   /* 0b0010011111010100111010110010111100010110010101100110011111000101 */
 
-/* Rotates value left by amount. */
-static uint64_t XXH_rotl64(uint64_t const value, uint32_t const amount)
+/* Rotates value left by amt. */
+static uint64_t XXH_rotl64(uint64_t const value, uint32_t const amt)
 {
-    return (value << amount) | (value >> (64 - amount));
+    return (value << (amt % 64)) | (value >> (64 - (amt % 64)));
 }
 
 /* Portably reads a 32-bit little endian integer from data at the given offset. */

@@ -53,10 +53,10 @@ static uint32_t const PRIME32_3 = 0xC2B2AE3DU;   /* 0b11000010101100101010111000
 static uint32_t const PRIME32_4 = 0x27D4EB2FU;   /* 0b00100111110101001110101100101111 */
 static uint32_t const PRIME32_5 = 0x165667B1U;   /* 0b00010110010101100110011110110001 */
 
-/* Rotates value left by amount. */
-static uint32_t XXH_rotl32(uint32_t const value, uint32_t const amount)
+/* Rotates value left by amt. */
+static uint32_t XXH_rotl32(uint32_t const value, uint32_t const amt)
 {
-    return (value << amount) | (value >> (32 - amount));
+    return (value << (amt % 32)) | (value >> (32 - (amt % 32)));
 }
 
 /* Portably reads a 32-bit little endian integer from data at the given offset. */
