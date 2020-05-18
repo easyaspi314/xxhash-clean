@@ -65,32 +65,6 @@ $(XXHSUM_EXAMPLE_OBJS): %.o: %.c
 %ref-cxx$(EXT): %ref.c
 	$(CXX) $(CXXFLAGS) -DXXH_SELFTEST -x c++ $< -o $@
 
-#
-#xxhash32-ref$(EXT): xxhash32-ref.c
-#	$(CC) $(CFLAGS) -DXXH_SELFTEST $< -o $@
-#
-#xxhash64-ref$(EXT): xxhash64-ref.c
-#	$(CC) $(CFLAGS) -DXXH_SELFTEST $< -o $@
-#
-#xxhash32-ref-cxx$(EXT): xxhash32-ref.c
-#	$(CXX) -x c++ $(CXXFLAGS) -DXXH_SELFTEST $< -o $@
-#
-#xxhash64-ref-cxx$(EXT): xxhash64-ref.c
-#	$(CXX) -x c++ $(CXXFLAGS) -DXXH_SELFTEST $< -o $@
-#
-#xxhash32-streaming-ref$(EXT): xxhash32-streaming-ref.c
-#	$(CC) $(CFLAGS) -DXXH_SELFTEST $< -o $@
-#
-#xxhash64-streaming-ref$(EXT): xxhash64-streaming-ref.c
-#	$(CC) $(CFLAGS) -DXXH_SELFTEST $< -o $@
-#
-#xxhash32-streaming-ref-cxx$(EXT): xxhash32-streaming-ref.c
-#	$(CXX) -x c++ $(CXXFLAGS) -DXXH_SELFTEST $< -o $@
-#
-#xxhash64-streaming-ref-cxx$(EXT): xxhash64-streaming-ref.c
-#	$(CXX) -x c++ $(CXXFLAGS) -DXXH_SELFTEST $< -o $@
-
-
 clean:
 	$(RM) xxhash32-ref$(EXT) xxhash64-ref$(EXT) xxhash32-ref-cxx$(EXT) xxhash64-ref-cxx$(EXT) \
 	$(RM) xxhash32-streaming-ref$(EXT) xxhash64-streaming-ref$(EXT) xxhash32-streaming-ref-cxx$(EXT) \
