@@ -1,0 +1,47 @@
+--- 
+jobs: 
+  include: 
+    - 
+      before_install: 
+        - wget https://saw.galois.com/builds/nightly/saw-0.4.0.99-2020-04-24-OSX-64.tar.gz
+        - tar -xzf saw-0.4.0.99-2020-04-24-OSX-64.tar.gz
+        - export PATH=$PATH:saw-0.4.0.99-2020-04-24-OSX-64/bin
+        - saw --version
+        - curl -fsSL https://github.com/Z3Prover/z3/releases/download/z3-4.8.8/z3-4.8.8-x64-osx-10.14.6.zip -o z3-4.8.8-x64-osx-10.14.6.zip
+        - unzip -j z3-4.8.8-x64-osx-10.14.6.zip -d z3_downloaded
+        - export PATH=$PATH:$(pwd)/z3_downloaded
+        - z3 --version
+        - brew install SRI-CSL/sri-csl/yices2
+        - yices-smt2 --version
+# I don't know how to get cvc4 to install on osx. The following (as suggested on the cvc4 website) times out after 10 minutes.
+#        - brew tap cvc4/cvc4
+#        - brew install cvc4/cvc4/cvc4
+#        - cvc4 --version
+      compiler: clang
+      os: osx
+    - 
+      before_install: 
+        - wget https://saw.galois.com/builds/nightly/saw-0.4.0.99-2020-04-24-Ubuntu14.04-64.tar.gz
+        - tar -xzf saw-0.4.0.99-2020-04-24-Ubuntu14.04-64.tar.gz
+        - export PATH=saw-0.4.0.99-2020-04-24-Ubuntu14.04-64/bin:$PATH
+        - saw --version
+        - curl -fsSL https://github.com/Z3Prover/z3/releases/download/z3-4.8.8/z3-4.8.8-x64-ubuntu-16.04.zip -o z3-4.8.8-x64-ubuntu-16.04.zip
+        - unzip -j z3-4.8.8-x64-ubuntu-16.04.zip -d z3_downloaded
+        - export PATH=$PATH:$(pwd)/z3_downloaded
+        - z3 --version
+        - sudo add-apt-repository -y ppa:sri-csl/formal-methods
+        - sudo apt-get update
+        - sudo apt-get install -y yices2
+        - yices-smt2 --version
+        - mkdir cvc4_downloaded
+        - curl -fsSL https://github.com/CVC4/CVC4/releases/download/1.7/cvc4-1.7-x86_64-linux-opt -o cvc4_downloaded/cvc4
+        - chmod a+x cvc4_downloaded/cvc4
+        - export PATH=$PATH:$(pwd)/cvc4_downloaded
+        - cvc4 --version
+      compiler: clang
+      dist: bionic
+      os: linux
+language: c
+script: 
+  - make
+  - make prove
