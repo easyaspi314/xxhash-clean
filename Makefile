@@ -70,7 +70,7 @@ prove: xxhash32-ref.bc xxhash64-ref.bc
 	saw saw/xxhash64.saw
 
 %ref.bc: %ref.c
-	$(CC) $(CFLAGS) $< -o $@ -c -emit-llvm -Wno-long-long -O1
+	clang $< -o $@ -c -emit-llvm -Wno-long-long -O1 -std=c90
 
 #
 #xxhash32-ref$(EXT): xxhash32-ref.c
