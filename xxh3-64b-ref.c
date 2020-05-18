@@ -534,25 +534,25 @@ XXH64_hash_t XXH3_64bits_withSecret(void const *const input, size_t const length
 #define TEST_DATA_SIZE 2243
 static int test_num = 0;
 
+static void verify(char const *const test_name, uint64_t const expected, uint64_t const result)
+{
+    if (result != expected) {
+        fprintf(stderr, "Error: Test %i: %s test failed!\n", ++test_num, test_name);
+        fprintf(stderr, "Expected value: 0x%08X%08X. Actual value: 0x%08X%08X.\n",
+                (uint32_t) (expected >> 32), (uint32_t) expected, (uint32_t) (result >> 32), (uint32_t) result);
+        exit(1);
+    }
+}
+
 /* Checks a hash value. */
 static void test_sequence(uint8_t const *const test_data, size_t const length,
                           uint64_t const seed, uint64_t const expected)
 {
     uint64_t result = XXH3_64bits_withSeed(test_data, length, seed);
-    if (result != expected) {
-        fprintf(stderr, "Error: Test %i: XXH3_64bits_withSeed test failed!\n", ++test_num);
-        fprintf(stderr, "\rExpected value: 0x%08X%08X. Actual value: 0x%08X%08X.\n",
-                (uint32_t) (expected >> 32), (uint32_t) expected, (uint32_t) (result >> 32), (uint32_t) result);
-        exit(1);
-    }
+    verify("XXH3_64bits_withSeed", expected, result);
     if (seed == 0) {
         result = XXH3_64bits(test_data, length);
-        if (result != expected) {
-            fprintf(stderr, "Error: Test %i: XXH3_64bits test failed!\n", ++test_num);
-            fprintf(stderr, "\rExpected value: 0x%08X%08X. Actual value: 0x%08X%08X.\n",
-                    (uint32_t) (expected >> 32), (uint32_t) expected, (uint32_t) (result >> 32), (uint32_t) result);
-            exit(1);
-        }
+        verify("XXH3_64bits", expected, result);
     }
 }
 
@@ -561,12 +561,7 @@ static void test_sequence_secret(uint8_t const *const test_data, size_t const le
                                  uint8_t const *const secret, size_t const secret_size, uint64_t const expected)
 {
     uint64_t result = XXH3_64bits_withSecret(test_data, length, secret, secret_size);
-    if (result != expected) {
-        fprintf(stderr, "Error: Test %i: XXH3_64bits_withSecret test failed!\n", ++test_num);
-        fprintf(stderr, "\rExpected value: 0x%08X%08X. Actual value: 0x%08X%08X.\n",
-                (uint32_t) (expected >> 32), (uint32_t) expected, (uint32_t) (result >> 32), (uint32_t) result);
-        exit(1);
-    }
+    verify("XXH3_64bits_withSecret", expected, result);
 }
 
 static const uint64_t PRIME64 = 0x9e3779b185ebca8d;
