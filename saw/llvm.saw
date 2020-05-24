@@ -1,0 +1,218 @@
+// LLVM utility definitions
+
+// This function will cause llvm_verify to error and, most
+// importantly, provide a handy backtrace.
+let error = do {
+  crucible_precond {{ True }};
+  crucible_postcond {{ True }};
+  return {{ True }};
+};
+
+// This function is useful in the opposite case of an `if` statement
+// with an `error`.
+let noerror = do {
+  return {{ True }};
+};
+
+// Remove 'crucible' from common commands
+let points_to = crucible_points_to;
+let precond = crucible_precond;
+let from_cryptol = crucible_term;
+
+let global = crucible_global;
+let global_alloc = crucible_alloc_global;
+let global_init name = do {
+  global_alloc name;
+  points_to (global name)
+            (crucible_global_initializer name);
+};
+let NULL = crucible_null;
+let element = crucible_elem;
+let equal = crucible_equal;
+let execute = crucible_execute_func;
+let postcond = crucible_postcond;
+let returns = crucible_return;
+let array = crucible_array;
+let llvm_verify module function_name overrides spec =
+  crucible_llvm_verify module function_name overrides true spec z3;
+
+// Declare constants used to denote what kind of space a pointer is
+// pointing to.
+let CONST  = {{ 0 : [2] }}; //Points to allocated space that is READ ONLY.
+let WRITE  = {{ 1 : [2] }}; //Points to allocated space that can be modified.
+let UNALLOC = {{ 2 : [2] }}; //Pointer does not point to allocated space.
+
+/**
+ * Returns a pointer of the given type. The first argument is either
+ * CONST, WRITE, or UNALLOC. The second argument is the type of the
+ * value the pointer can point to.
+ *
+ * For example, the following creates a pointer to allocated space
+ * that is read only.
+ *
+ *   p <- pointer CONST (llvm_array 4 uint32_t);
+ *
+ * The following creates a pointer to allocated space that can be
+ * modified.
+ *
+ *   p <- pointer WRITE (llvm_array 4 uint32_t);
+ *
+ *
+ * The following creates a pointer that is either unallocated or
+ * NULL, i.e. that does not point to allocated space.
+ *
+ *   p <- pointer UNALLOC (llvm_array 4 uint32_t);
+ */ 
+let pointer (rw : Term) (type : LLVMType) =
+  if      (eval_bool {{ rw == CONST }}) then crucible_alloc_readonly type
+  else if (eval_bool {{ rw == WRITE }}) then crucible_alloc type
+  else                                       crucible_fresh_pointer type;
+
+//Symbolic value --- for use with the `variable` function.
+let FRESH = { fresh={{ True }} : Term, t={{ error "NEW Term field was accessed" }} : Term};
+//Concrete value --- for use with the `variable` function.
+let STALE (t : Term) = { fresh={{ False }} : Term, t=t : Term};
+
+//Empty variable --- called by the `variable` function.
+let variable_empty = do {
+  return {{ False }};
+};
+
+/**
+ * Returns a NULL pointer, SetupValue, and Term for either a new
+ * symbolic variable or a term passed in. The first argument is the
+ * type of the variable to be created. The second argument is a name
+ * that is printed during debugging or counterexamples. The third
+ * argument is either FRESH or STALE.
+ *
+ * For example, the following creates a 32-bit variable that can take
+ * on any 32-bit value.
+ *
+ *   v <- variable (llvm_int 32) "name" FRESH
+ *
+ * The following creates a 32-bit variable assigned to 10.
+ *
+ *   v <- variable (llvm_int 32) "name" (STALE {{ 10 : [32] }})
+ */
+let variable (type : LLVMType) (name : String) (v : { fresh : Term, t : Term}) = do {
+  cfv <- if (eval_bool v.fresh) then (crucible_fresh_var name type) else variable_empty;
+  let t = if (eval_bool v.fresh) then cfv else v.t;
+  let s = from_cryptol t;
+  return {p=NULL, s=s, t=t};
+};
+
+/**
+ * Returns a newly-allocated pointer of the given type that points to
+ * a new symbolic variable or a term passed in. Also returns the
+ * SetupValue and Term for the variable. The first argument is either
+ * CONST or WRITE; see `:h pointer` for more information. The second
+ * argument is type of the value the pointer points to. The third
+ * argument is a name that is printed during debugging or
+ * counterexamples. The fourth argument is either FRESH or STALE; see
+ * `:h variable` for more information.
+ *
+ * For example, the following creates a const array of 4 32-bit
+ * integers assigned the value [1, 2, 3, 4].
+ *
+ *   vs <- alloc CONST (llvm_array 4 uint32_t) "vs" (STALE {{ [1, 2, 3, 4] : [4][32] }})
+ *
+ * The following creates an array of 4 32-bit symbolic integers.
+ *
+ *   vs <- alloc WRITE (llvm_array 4 uint32_t) "vs" FRESH
+ */
+let alloc (rw : Term) (type : LLVMType) (name : String) (v : { fresh : Term, t : Term}) = do {
+  v' <- variable type name v;
+  //The UNALLOC pointer cannot point to allocated memory.
+  err <- if (eval_bool {{ rw == UNALLOC }}) then error else noerror;
+  p <- pointer rw type;
+  points_to p v'.s;
+  return {p=p, s=v'.s, t=v'.t};
+};
+
+// Standard LLVM type names
+let i8 = llvm_int 8;
+let i16 = llvm_int 16;
+let i32 = llvm_int 32;
+let i64 = llvm_int 64;
+
+// Standard C type names
+let int8_t = llvm_int 8;
+let int16_t = llvm_int 16;
+let int32_t = llvm_int 32;
+let int64_t = llvm_int 64;
+let uint8_t = llvm_int 8;
+let uint16_t = llvm_int 16;
+let uint32_t = llvm_int 32;
+let uint64_t = llvm_int 64;
+let char = llvm_int 8;
+
+// Provides the type of a struct. For example, 'struct_t "mystruct_t"';
+let struct_t (name : String) = llvm_struct (str_concat "struct." name);
+
+let struct (s : [SetupValue]) = do {
+  let s_struct = crucible_struct s;
+  return {p=NULL, s=s_struct, t={{ error "struct Term field was accessed" }}};
+};
+
+// Provides a pointer, SetupValue, and Term associated with a string
+// of size `size+1` that is NULL terminated. The Term (Cryptol value)
+// DOES NOT have the NULL at the end of the string.
+// This is to be used before the `execute` command.
+let string_t (rw : Term) (size : Int) (string_name : String) = do {
+  string <- variable (llvm_array size uint8_t) string_name FRESH;
+  pstring <- pointer rw (llvm_array (eval_int {{ `size + 1 : [64] }}) uint8_t);
+  let stringt = string.t;
+  points_to pstring (from_cryptol {{ stringt # [0] }});
+  return {p=pstring, s=string.s, t=string.t};
+};
+
+// Provides a pointer, SetupValue, and Term associated with a string
+// of size `size+1` that is NULL terminated. The Term (Cryptol value)
+// DOES have the NULL at the end of the string.
+// This is to be used after the `execute` command.
+
+let string_t' (size : Int) (string_name : String) = do {
+  string <- alloc CONST (llvm_array (eval_int {{ `(size+1) : [64] }}) uint8_t) "string" FRESH;
+  let s = string.t;
+  postcond {{ s@(`size : [64]) == 0 }};
+  return {p=string.p, s=from_cryptol string.t, t=string.t};
+};
+
+// Provides an empty list of objects. Used as the basecase for
+// `array_init_rec`.
+let array_init_empty = do {
+  return {s=[] : [SetupValue], bucket=[] : [b]} : CrucibleSetup {s : [SetupValue], bucket : [b]};
+};
+
+// Provides a list of initialized objects and a same-sized list of
+// buckets where associated values can be stored.
+rec array_init_rec (numElements : Int) (init_function : Int -> a -> CrucibleSetup {s : SetupValue, bucket : b}) (params : a) = do {
+  err <- if (eval_bool {{ (`numElements : [32]) == 0 }}) then error else noerror; //numElements must be greater than 0
+  element <- init_function (eval_int {{ (`numElements : [32]) - 1 }}) params;
+  rest <- if (eval_bool {{ (`numElements : [32]) == 1 }}) then array_init_empty
+          else array_init_rec (eval_int {{ (`numElements : [32]) - 1 }}) init_function params;
+
+  let ret_s = (concat rest.s [element.s]);
+  let ret_bucket = (concat rest.bucket [element.bucket]);
+
+  return {s=ret_s : [SetupValue], bucket=ret_bucket : [b]};
+};
+
+/**
+ * Provides an array of initialized objects and a same-sized list of
+ * buckets where associated values can be stored. The first argument
+ * is either CONST or WRITE; see `:h pointer` for more
+ * information. The second argument is the length of the array. The
+ * third argument is type of the value of the array elements. The
+ * fourth argument is an initialization function that takes the
+ * element's array index and some concrete parameters (the fifth
+ * argument) and returns a SetupValue representing the array and a
+ * bucket where associated values can be stored.
+ */
+let array_init (rw : Term) (numElements : Int) (type : LLVMType) (init_function : Int -> a -> CrucibleSetup {s : SetupValue, bucket : b}) (params : a) = do {
+  list <- array_init_rec numElements init_function params;
+  let arr = array list.s;
+  p <- pointer rw (llvm_array numElements type);
+  points_to p arr;
+  return {p=p : SetupValue, s=arr : SetupValue, bucket=list.bucket : [b]};
+};

@@ -1,0 +1,108 @@
+include "llvm.saw";
+
+import "xxhash.cry";
+
+let {{
+  PRIME64_1 = 0x9E3779B185EBCA87 : [64]
+  PRIME64_2 = 0xC2B2AE3D27D4EB4F : [64]
+  PRIME64_3 = 0x165667B19E3779F9 : [64]
+  PRIME64_4 = 0x85EBCA77C2B2AE63 : [64]
+  PRIME64_5 = 0x27D4EB2F165667C5 : [64]
+
+  XXH64_round : [64] -> [64] -> [64]
+  XXH64_round accN laneN = ((accN + laneN * PRIME64_2) <<< 31) * PRIME64_1
+
+  XXH64_avalanche : [64] -> [64]
+  XXH64_avalanche acc0 = acc5
+    where acc1 = acc0 ^ (acc0 >> 33)
+          acc2 = acc1 * PRIME64_2
+          acc3 = acc2 ^ (acc2 >> 29)
+          acc4 = acc3 * PRIME64_3
+          acc5 = acc4 ^ (acc4 >> 32)
+}};
+
+xxhash64_ref_bc <- llvm_load_module "../xxhash64-ref.bc";
+
+//uint64_t XXH_rotl64(uint64_t const value, uint32_t const amt)
+let XXH_rotl64_spec = do {
+  value <- variable uint64_t "value" FRESH;
+  amt <- variable uint32_t "amt" FRESH;
+
+  let (value_t, amt_t) = (value.t, amt.t);
+  
+  //It would be great to be able to remove this precondition.
+  //precond {{ (amt_t > 0) && (amt_t < 64) }};
+
+  execute [value.s, amt.s];
+
+  returns (from_cryptol {{ value_t <<< amt_t }});
+};
+
+XXH_rotl64_result <- llvm_verify xxhash64_ref_bc "XXH_rotl64" [] XXH_rotl64_spec;
+
+
+//uint64_t XXH64_round(uint64_t acc, uint64_t const input)
+let XXH64_round_spec = do {
+  acc <- variable uint64_t "acc" FRESH;
+  input <- variable uint64_t "input" FRESH;
+
+  execute [acc.s, input.s];
+
+  let (acc_t, input_t) = (acc.t, input.t);
+  //The names of these inputs are swapped from how they are called in
+  //the xxHash spec.
+  returns (from_cryptol {{ XXH64_round acc_t input_t }});
+};
+
+XXH64_round_result <- llvm_verify xxhash64_ref_bc "XXH64_round" [] XXH64_round_spec;
+
+
+//uint64_t XXH64_avalanche(uint64_t hash)
+let XXH64_avalanche_spec = do {
+  hash <- variable uint64_t "avalanche" FRESH;
+
+  execute [hash.s];
+
+  let hash_t = hash.t;
+  returns (from_cryptol {{ XXH64_avalanche hash_t }});
+};
+
+XXH64_avalanche_result <- llvm_verify xxhash64_ref_bc "XXH64_avalanche" [] XXH64_avalanche_spec;
+
+
+//uint64_t XXH64(void const *const input, size_t const length, uint64_t const seed)
+let XXH64_NULL_spec = do {
+  length <- variable uint64_t "length" FRESH;
+  seed <- variable uint64_t "seed" FRESH;
+
+  execute [crucible_null, length.s, seed.s];
+
+  let seed_t = seed.t;
+  returns (from_cryptol {{ XXH64`{L=0} zero seed_t }});
+};
+
+XXH64_NULL_result <- llvm_verify xxhash64_ref_bc "XXH64" [] XXH64_NULL_spec;
+
+
+//uint64_t XXH64(void const *const input, size_t const length, uint64_t const seed)
+let XXH64_spec (nBytes : Int) = do {
+  input <- alloc CONST (llvm_array nBytes uint8_t) "input" FRESH;
+  length <- variable uint64_t "length" (STALE {{ `nBytes : [64] }});
+  seed <- variable uint64_t "seed" FRESH;
+
+  execute [input.p, length.s, seed.s];
+
+  let (input_t, seed_t) = (input.t, seed.t);
+  returns (from_cryptol {{ XXH64`{L=nBytes} input_t seed_t }});
+};
+
+let XXH64_result (nBytes : Int) = crucible_llvm_verify xxhash64_ref_bc "XXH64" [XXH_rotl64_result, XXH64_round_result, XXH64_avalanche_result] true (XXH64_spec nBytes) yices;
+
+let XXH64_verify_print n = do {
+    print (str_concat "Checking XXH64 correct for nBytes=" (show n));
+    XXH64_result n;
+};
+
+XXH64_results <- for [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,32,64,128]
+                 XXH64_verify_print;
+

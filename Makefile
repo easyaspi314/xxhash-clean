@@ -65,10 +65,18 @@ $(XXHSUM_EXAMPLE_OBJS): %.o: %.c
 %ref-cxx$(EXT): %ref.c
 	$(CXX) $(CXXFLAGS) -DXXH_SELFTEST -x c++ $< -o $@
 
+prove: xxhash32-ref.bc xxhash64-ref.bc
+	saw saw/xxhash32.saw
+	saw saw/xxhash64.saw
+
+%ref.bc: %ref.c
+	clang $< -o $@ -c -emit-llvm -Wno-long-long -O0 -std=c90
+
 clean:
 	$(RM) xxhash32-ref$(EXT) xxhash64-ref$(EXT) xxhash32-ref-cxx$(EXT) xxhash64-ref-cxx$(EXT) \
 	$(RM) xxhash32-streaming-ref$(EXT) xxhash64-streaming-ref$(EXT) xxhash32-streaming-ref-cxx$(EXT) \
     xxhash64-streaming-ref-cxx$(EXT) xxhsum-example$(EXT) xxh3-64b-ref$(EXT) xxh3-64b-ref-cxx$(EXT) \
      xxh3-128b-ref$(EXT) xxh3-128b-ref-cxx$(EXT)  $(XXHSUM_EXAMPLE_OBJS)
+	$(RM) xxhash32-ref.bc xxhash64-ref.bc
 
 .PHONY: all clean cxx
